@@ -1,0 +1,44 @@
+{
+  "name": "@toolmesh/agent-deck",
+  "version": "0.1.0",
+  "description": "Install and sync Claude Code and Cursor plugins, skills, agents and MCP servers into a project from a lockfile.",
+  "type": "module",
+  "author": "Julien La Vinh",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.14"
+  },
+  "bin": {
+    "agent-deck": "bin/agent-deck.js"
+  },
+  "files": [
+    "bin/**",
+    "src/**/*.mjs",
+    "!src/**/*.test.mjs",
+    "!src/testkit.mjs"
+  ],
+  "scripts": {
+    "test": "node --test src/*.test.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tilap/agent-deck.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tilap/agent-deck/issues"
+  },
+  "homepage": "https://github.com/tilap/agent-deck#readme",
+  "keywords": [
+    "claude-code",
+    "cursor",
+    "agents",
+    "skills",
+    "plugins",
+    "mcp",
+    "marketplace",
+    "lockfile"
+  ]
+}
