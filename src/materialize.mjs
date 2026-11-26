@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { INSTALLED_DIR, pluginRel } from "./paths.mjs";
+import { INSTALLED_DIR, marketplaceName, pluginRel } from "./paths.mjs";
 
 /**
  * Write a located plugin to `.ai/installed/plugins/<id>/` in the layout both hosts read
@@ -171,7 +171,7 @@ export function treeIntegrity(dir) {
 export function writeMarketplace(projectRoot, ids) {
   const file = path.join(projectRoot, INSTALLED_DIR, ".claude-plugin", "marketplace.json");
   writeJson(file, {
-    name: "agent-deck",
+    name: marketplaceName(projectRoot),
     owner: { name: "@toolmesh/agent-deck" },
     description: "Plugins installed by @toolmesh/agent-deck for this project",
     plugins: [...ids].sort().map((id) => ({ name: pluginName(id), source: `./plugins/${id}` })),

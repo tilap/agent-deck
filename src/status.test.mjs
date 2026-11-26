@@ -64,12 +64,12 @@ test("checks .gitignore and native plugins against the claude CLI", async () => 
   state.plugins.demo.native = ["claude"];
   writeState(root, state);
   const fake = writeTree(tmp(), {
-    claude: '#!/bin/sh\necho \'[{"id":"other@agent-deck"}]\'\n',
+    claude: '#!/bin/sh\necho \'[{"id":"other@agent-deck-x"}]\'\n',
   });
   fs.chmodSync(path.join(fake, "claude"), 0o755);
   const findings = doctor(root, { claude: () => path.join(fake, "claude") });
   assert.ok(levels(findings, "warn").some((m) => m.includes("commit it instead")));
-  assert.ok(levels(findings, "error").some((m) => m.includes("does not list demo@agent-deck")));
+  assert.ok(levels(findings, "error").some((m) => m.includes("does not list demo@agent-deck-")));
 });
 
 test("without ai-plugin.json there is one clear error", () => {

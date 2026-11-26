@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { installAll, installOne, lockOnly, uninstallOne } from "./install.mjs";
 import { readLockfile } from "./lockfile.mjs";
+import { marketplaceName } from "./paths.mjs";
 import { isOutdated, outdated } from "./outdated.mjs";
 import { readState } from "./state.mjs";
 import { gitCommit, gitRepo, readJson, skill, tmp, writeTree } from "./testkit.mjs";
@@ -29,13 +30,14 @@ const file = path.join(process.cwd(), ".claude", "settings.local.json");
 const s = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
 const [a, b, c] = args;
 if (a === "plugin" && b === "marketplace" && c === "add") {
-  s.extraKnownMarketplaces = { "agent-deck": { source: { source: "directory", path: args[3] } } };
+  const name = JSON.parse(fs.readFileSync(path.join(args[3], ".claude-plugin", "marketplace.json"), "utf8")).name;
+  s.extraKnownMarketplaces = { ...(s.extraKnownMarketplaces || {}), [name]: { source: { source: "directory", path: args[3] } } };
 } else if (a === "plugin" && b === "install") {
   s.enabledPlugins = { ...(s.enabledPlugins || {}), [c]: true };
 } else if (a === "plugin" && b === "uninstall") {
   delete (s.enabledPlugins || {})[c];
 } else if (a === "plugin" && b === "marketplace" && c === "remove") {
-  delete (s.extraKnownMarketplaces || {})["agent-deck"];
+  delete (s.extraKnownMarketplaces || {})[args[3]];
 }
 fs.mkdirSync(path.dirname(file), { recursive: true });
 fs.writeFileSync(file, JSON.stringify(s));
@@ -243,10 +245,12 @@ test("Claude native mode registers .ai/installed/ and installs each plugin from 
     assert.ok(exists(root, ".cursor/skills/hello"), "Cursor still copies");
     assert.deepEqual(readState(root).plugins.demo.native, ["claude"]);
     const installedDir = path.join(root, ".ai/installed");
+    const market = marketplaceName(root);
     assert.deepEqual(fake.calls(), [
       `plugin marketplace add ${installedDir} --scope local`,
-      "plugin install demo@agent-deck --scope local",
+      `plugin install demo@${market} --scope local`,
     ]);
+    assert.equal(readJson(path.join(installedDir, ".claude-plugin/marketplace.json")).name, market);
     assert.equal(readJson(path.join(installedDir, ".claude-plugin/marketplace.json")).plugins[0].name, "demo");
 
     const again = await installAll(root, { plugins: [request] }, readLockfile(root));
@@ -254,14 +258,48 @@ test("Claude native mode registers .ai/installed/ and installs each plugin from 
     assert.deepEqual(fake.calls().slice(2), [], "an unchanged plugin costs no claude call");
 
     await installAll(root, { plugins: [] }, readLockfile(root));
-    assert.deepEqual(fake.calls().slice(-2), ["plugin uninstall demo@agent-deck --scope local", "plugin marketplace remove agent-deck"]);
+    assert.deepEqual(fake.calls().slice(-2), [`plugin uninstall demo@${market} --scope local`, `plugin marketplace remove ${market}`]);
 
     // Switching back to copy uninstalls the native plugin and copies files.
     await installAll(root, { plugins: [request] }, readLockfile(root));
     await installAll(root, { plugins: [request], hosts: { claude: "copy" } }, readLockfile(root));
-    assert.ok(fake.calls().includes("plugin uninstall demo@agent-deck --scope local"));
-    assert.equal(fake.calls().at(-1), "plugin marketplace remove agent-deck");
+    assert.ok(fake.calls().includes(`plugin uninstall demo@${market} --scope local`));
+    assert.equal(fake.calls().at(-1), `plugin marketplace remove ${market}`);
     assert.ok(exists(root, ".claude/skills/hello"));
+  } finally {
+    process.env.AGENT_DECK_CLAUDE_BIN = "/nonexistent/claude";
+  }
+});
+
+test("two projects register two marketplaces, and the shared pre-0.1.2 name is dropped", async () => {
+  const fake = fakeClaude();
+  process.env.AGENT_DECK_CLAUDE_BIN = fake.bin;
+  try {
+    const repo = marketplaceRepo();
+    const request = { id: "demo", source: `git:${repo.url}`, plugin: "demo" };
+    const a = project();
+    const b = project();
+    assert.notEqual(marketplaceName(a), marketplaceName(b));
+    assert.match(marketplaceName(a), /^agent-deck-[a-z0-9-]+-[0-9a-f]{8}$/);
+
+    // A project installed by an older agent-deck: the shared name, pointing here.
+    fs.mkdirSync(path.join(a, ".claude"), { recursive: true });
+    fs.writeFileSync(
+      path.join(a, ".claude/settings.local.json"),
+      JSON.stringify({
+        enabledPlugins: { "demo@agent-deck": true },
+        extraKnownMarketplaces: { "agent-deck": { source: { source: "directory", path: path.join(a, ".ai/installed") } } },
+      }),
+    );
+    await installAll(a, { plugins: [request] }, null);
+    await installAll(b, { plugins: [request] }, null);
+
+    const settings = readJson(path.join(a, ".claude/settings.local.json"));
+    assert.deepEqual(Object.keys(settings.extraKnownMarketplaces), [marketplaceName(a)]);
+    assert.deepEqual(Object.keys(settings.enabledPlugins), [`demo@${marketplaceName(a)}`]);
+    assert.ok(fake.calls().includes("plugin uninstall demo@agent-deck --scope local"));
+    assert.ok(fake.calls().includes("plugin marketplace remove agent-deck"));
+    assert.ok(fake.calls().includes(`plugin install demo@${marketplaceName(b)} --scope local`));
   } finally {
     process.env.AGENT_DECK_CLAUDE_BIN = "/nonexistent/claude";
   }

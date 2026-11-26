@@ -1,8 +1,22 @@
 /** Shared paths for @toolmesh/agent-deck. */
 
+import { createHash } from "node:crypto";
+import path from "node:path";
+
 export const PLUGINS_FILE = "ai-plugin.json";
 export const LOCAL_PLUGINS_FILE = "ai-plugin.local.json";
 export const LOCK_FILE = "ai-plugin.lock.json";
+
+/**
+ * Name of the local marketplace Claude registers for a project's `.ai/installed/`.
+ * Claude keeps one directory per marketplace name for the whole user account, so the
+ * name carries the project folder and a hash of its path: two projects never share one.
+ */
+export function marketplaceName(projectRoot) {
+  const root = path.resolve(projectRoot);
+  const slug = path.basename(root).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "project";
+  return `agent-deck-${slug}-${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;
+}
 
 /** Everything AI-tooling in a project lives under .ai/. */
 export const AI_DIR = ".ai";

@@ -295,14 +295,17 @@ Then each host is activated. `ai-plugin.json` can set a mode per host:
 | `off`    | nothing for that host                                                               | nothing for that host               |
 
 **Native (Claude Code).** agent-deck runs `claude plugin marketplace add <project>/.ai/installed --scope
-local`, then `claude plugin install <id>@agent-deck --scope local` for each plugin (and
+local`, then `claude plugin install <id>@<marketplace> --scope local` for each plugin (and
 `plugin uninstall` when it goes). An installed plugin needs no further call: Claude reads
 its tree, so hooks, commands, agents, MCP servers, and `${CLAUDE_PLUGIN_ROOT}` work as the plugin
 author intended, and skills are namespaced (`impeccable:impeccable`). The registration is
 recorded in `.claude/settings.local.json` and in the user's plugin registry, so every
 machine runs `agent-deck install` once. Without the `claude` CLI on `PATH` (or
-`AGENT_DECK_CLAUDE_BIN`), agent-deck falls back to copy mode and says so. The `agent-deck` marketplace is
-removed when no plugin is installed from it.
+`AGENT_DECK_CLAUDE_BIN`), agent-deck falls back to copy mode and says so. The marketplace is named
+`agent-deck-<folder>-<hash of the project path>`: Claude keeps one directory per marketplace name for the
+whole user account, so each project gets its own name and projects never collide. It is removed when no
+plugin is installed from it. A project installed by 0.1.1 or earlier, which used the shared name `agent-deck`,
+is moved to the new name by the next `agent-deck install`.
 
 **Cursor.** `cursor-agent` ignores plugin paths returned by a `workspaceOpen` hook, so Cursor uses copy mode. Agent runners can still pass
 `.ai/installed/plugins/<id>` to `cursor-agent --plugin-dir`.
