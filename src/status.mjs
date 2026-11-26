@@ -4,7 +4,7 @@ import { gitignoreStatus } from "./gitignore.mjs";
 import { claudeBin, nativeInstalled } from "./hosts/claude-native.mjs";
 import { hostModes } from "./install.mjs";
 import { pluginName, treeIntegrity } from "./materialize.mjs";
-import { LOCK_FILE, PLUGINS_FILE, pluginRel } from "./paths.mjs";
+import { LOCK_FILE, PLUGINS_FILE, marketplaceName, pluginRel } from "./paths.mjs";
 import { loadProject } from "./project.mjs";
 import { sameRequest } from "./sources/spec.mjs";
 import { readState } from "./state.mjs";
@@ -121,7 +121,7 @@ function checkProject(project, options) {
     } else {
       const listed = new Set(nativeInstalled(bin, projectRoot) ?? []);
       for (const id of nativeIds) {
-        if (!listed.has(pluginName(id))) error(`Claude does not list ${pluginName(id)}@agent-deck. Run agent-deck install.`, id);
+        if (!listed.has(pluginName(id))) error(`Claude does not list ${pluginName(id)}@${marketplaceName(projectRoot)}. Run agent-deck install.`, id);
       }
     }
   }
