@@ -1,6 +1,6 @@
 {
   "name": "@toolmesh/agent-deck",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Install and sync Claude Code and Cursor plugins, skills, agents and MCP servers into a project from a lockfile.",
   "type": "module",
   "author": "Julien La Vinh",
